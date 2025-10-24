@@ -1,11 +1,10 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import * as headbreaker from 'headbreaker';      // headbreaker を丸ごと読み込み
+import * as headbreaker from 'headbreaker';
 import Header from '@/components/layout/Header';
 import MuteBtn from '@/components/ui/MuteBtn';
 import Link from 'next/link';
 
-// 画像リストはコンポーネント外で定義してから使用
 const imageList = [
   '/images/zone_4/zone_4_pz01.jpg',
   '/images/zone_4/zone_4_pz02.jpg',
@@ -15,7 +14,7 @@ const imageList = [
 ];
 
 export default function Zone4() {
-  const puzzleRef = useRef<HTMLDivElement>(null); // puzzleRef をここで宣言
+  const puzzleRef = useRef<HTMLDivElement>(null);
   const [level, setLevel] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
 
@@ -23,43 +22,47 @@ export default function Zone4() {
     const container = puzzleRef.current;
     if (!container || level >= imageList.length) return;
 
-    container.innerHTML = '';  // 前のレベルのピースを消す
+    container.innerHTML = '';
 
-    // headbreaker.Canvas を使用しつつ丸型アウトラインを指定
-    const canvas = new headbreaker.Canvas(container.id, {
-      width: 800,
-      height: 650,
-      pieceSize: 80,
-      proximity: 30,
-      borderFill: 10,
-      strokeWidth: 2,
-      lineSoftness: 0.25,
-      painter: new headbreaker.painters.Konva(),
-      outline: new headbreaker.outline.Rounded()  // ここで丸いピースを指定
-    });
-
-    // 画像を読み込み、ピースを自動生成
+    // 画像読み込み → Canvas 作成
     const img = new Image();
     img.src = imageList[level];
     img.onload = () => {
-      canvas.settings.image = img;
+      const canvas = new headbreaker.Canvas(container.id, {
+        width: 800,
+        height: 650,
+        pieceSize: 80,
+        proximity: 30,
+        borderFill: 10,
+        strokeWidth: 2,
+        lineSoftness: 0.25,
+        painter: new headbreaker.painters.Konva(),
+        outline: new headbreaker.outline.Rounded(),
+        image: img,
+        maxPiecesCount: { x: 5, y: 4 },
+        preventOffstageDrag: true,
+        fixed: true               // 盤面を固定:contentReference[oaicite:4]{index=4}
+      });
+
+      canvas.adjustImagesToPuzzleHeight();
       canvas.autogenerate({ horizontalPiecesCount: 5, verticalPiecesCount: 4 });
       canvas.shuffle(0.7);
       canvas.draw();
+      canvas.reframeWithinDimensions();  // ピースを表示範囲内に収める
 
-      // 完成時の処理
-      canvas.on('solve', () => {
-        canvas.stop();
-        if (level < imageList.length - 1) {
-          setLevel(prev => prev + 1);
-        } else {
-          setIsFinished(true);
-        }
+      // 完成判定を有効にして処理を登録:contentReference[oaicite:5]{index=5}
+      canvas.attachSolvedValidator();
+      canvas.onValid(() => {
+        setTimeout(() => {
+          canvas.stop();
+          if (level < imageList.length - 1) {
+            setLevel(prev => prev + 1);
+          } else {
+            setIsFinished(true);
+          }
+        }, 1000); // 1 秒待って次へ
       });
     };
-
-    // クリーンアップ
-    return () => canvas.stop();
   }, [level]);
 
   return (
@@ -78,7 +81,12 @@ export default function Zone4() {
         {isFinished ? (
           <div className="text-2xl text-green-500 font-semibold">恭喜完成所有關卡！</div>
         ) : (
-          <div ref={puzzleRef} id="puzzle" style={{ width: '800px', height: '650px' }} />
+          // 半透明グレーの作業エリア
+          <div
+            ref={puzzleRef}
+            id="puzzle"
+            className="relative w-[800px] h-[650px] bg-gray-200/50 border border-gray-300"
+          />
         )}
         <div className="text-lg font-semibold">
           関卡：{level + 1} / {imageList.length}
