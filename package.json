@@ -23,7 +23,6 @@
     "phaser": "^3.90.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-jigsaw-puzzle": "github:hprmpm/react-jigsaw-puzzle",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1"
   },
